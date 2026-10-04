@@ -3,12 +3,13 @@ import tkinter as tk
 from files import *
 from numbering import *
 from ui import *
+from typing import Any, Dict, Optional
 
 PARENT = ".."
 # PARENT = "↖"
 
 
-def get_options():
+def get_options() -> Dict[str, Any]:
     return {
         OPT_RENUMBER: renumber.get(),
         OPT_REVERSE: reverse.get(),
@@ -18,13 +19,13 @@ def get_options():
     }
 
 
-def options_changed(*args):
+def options_changed(name: Optional[str], old_value: Optional[str], new_value: Optional[str]) -> Optional[List[Dict[str, Any]]]:
     options = get_options()
-    print(f"options changed: {options}")
-    fill_file_lists()
+    # print(f"options changed: {options}")
+    return fill_file_lists()
 
 
-def dir_list_dblclk(event=None):
+def dir_list_dblclk(event: Optional[tk.Event] = None) -> None:
     sel_indexes = dir_list.curselection()
     if sel_indexes:
         dir_name = dir_list.get(sel_indexes[0])
@@ -33,39 +34,41 @@ def dir_list_dblclk(event=None):
         else:
             # don't forget to strip '[' and ']' from dir_name (like I did...)
             dir_name = Path(Path(folder.get()) / dir_name[1:-1])
-            folder.set(dir_name.resolve())
+            folder.set(str(dir_name.resolve()))
             fill_lists()
 
 
-def fill_dir_list():
+def fill_dir_list() -> None:
     dir_list.delete(0, tk.END)
     path = Path(folder.get()).resolve()
     if has_parent(path):
         dir_list.insert(0, PARENT)
     dirs = get_dirs(path)
     if dirs:
-        dirs = filter(lambda s: not s.startswith('.'), dirs)
+        dirs = list(filter(lambda s: not s.startswith('.'), dirs))
         dirs = [f"[{dir}]" for dir in sorted(dirs, key=str.lower)]
         dir_list.insert(tk.END, *sorted(dirs))
 
 
-def fill_file_lists():
+def fill_file_lists() -> Optional[List[Dict[str, Any]]]:
     # first, remove all files from list (applies to folder without any files, too)
     file_list.delete(0, tk.END)
     renamed_file_list.delete(0, tk.END)
     path = Path(folder.get())
-    if path.exists:
+    if path.exists():
         files = get_files(path)
         if files:
-            files = filter(lambda s: not s.startswith('.'), files)
+            files = list(filter(lambda s: not s.startswith('.'), files))
             file_map = build_file_name_map(files)
             if file_map:
                 file_list.insert(tk.END, *get_in_file_names(file_map))
                 renamed_file_list.insert(
                     tk.END, *get_out_file_names(file_map, get_options()))
+                return file_map
+    return None
 
 
-def update_widgets():
+def update_widgets() -> None:
     path = Path(folder.get()).resolve()
     # print(f"update widgtes for path {path} (exists: {path.exists()})")
     folder_entry["fg"] = "white" if path.exists() else "red"
@@ -73,17 +76,17 @@ def update_widgets():
 
 
 # fill_lists may get called from a binding (event supplied) or from a wodget command
-def fill_lists(event=None):
+def fill_lists(event: Optional[tk.Event] = None) -> None:
     """fill dir and file lists and update related widgets"""
-    folder.set(Path(folder.get()).resolve())
+    folder.set(str(Path(folder.get()).resolve()))
     fill_dir_list()
     fill_file_lists()
     update_widgets()
 
 
-def set_parent_dir(event=None):
+def set_parent_dir(event: Optional[tk.Event] = None) -> None:
     path = Path(folder.get()).resolve()
-    folder.set(path.parent.resolve())
+    folder.set(str(path.parent.resolve()))
     fill_lists()
 
 
